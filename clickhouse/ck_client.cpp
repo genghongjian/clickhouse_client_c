@@ -149,8 +149,8 @@ static __inline__ __attribute__((always_inline)) void write_number_column_data(
 
 }
 
-//最多占用1G内存
-#define MAX_COLUMNS_MEMORY 	1073741824
+//最多占用4G内存
+#define MAX_COLUMNS_MEMORY 	4294967296
 
 static int ajust_columns_mem(ck_result_s *result_data, int row_cnt)
 {
@@ -265,6 +265,7 @@ void select_callbak_func(const Block &block, char *data)
         case UInt16:
 			write_number_column_data<ColumnUInt16>(block, index, sizeof(uint16_t),row_num,column_datas);
             break;
+		case DateTime:
         case UInt32:
 			write_number_column_data<ColumnUInt32>(block, index, sizeof(uint32_t),row_num,column_datas);
             break;
@@ -280,22 +281,12 @@ void select_callbak_func(const Block &block, char *data)
         case String:
            	for(int i = 0; i < row_num; i++)
            	{
-				memcpy(column_datas, (void *)(string((*block[index]->As<ColumnString>())[i]).c_str()), column->col_len);
+				memset(column_datas, 0, column->col_len);
+				const char *str = (string((*block[index]->As<ColumnString>())[i]).c_str());
+				memcpy(column_datas, (void *)str, strlen(str));
     			column_datas += column->col_len;
 			}
             break;
-        case DateTime:
-			write_number_column_data<ColumnUInt32>(block, index, sizeof(uint32_t),row_num,column_datas);
-            break;
-        case Date:
-        {
-            //auto col_date = block[column_count]->As<ColumnNullable>();
-            //auto std::time_t t = col_date->Nested()->As<ColumnDate>()->At(i);
-            //std::cout << "Date ：" << column_count << endl;
-            //std::cout << "Date ：" << (*block[column_count]->As<ColumnUInt16>()->At(i)) << endl;
-            // memcpy(row_data, (void *)&(*block[column_count]->As<ColumnUInt16>()->At(i)), columns_data->columns[column_count].col_len);
-            break;
-        }
         case IPv4:
         {
 			for(int i = 0; i < row_num; i++)
@@ -316,6 +307,19 @@ void select_callbak_func(const Block &block, char *data)
 			}
             break;
         }
+		case Date:
+		{
+			for(int i = 0; i < row_num; i++)
+           	{
+				//auto col_date = block[index]->As<ColumnNullable>();
+				//std::time_t t = col_date->Nested()->As<ColumnDate>()->At(i);
+				//std::cerr << std::asctime(std::localtime(&t))<< "\n";
+
+				memset(column_datas, 0, column->col_len);
+				column_datas += column->col_len;
+			}
+			break;
+		}
         case FixedString:
         case Array:
         case Nullable:
